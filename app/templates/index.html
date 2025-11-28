@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt Scanner</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<section class="section">
+    <div class="container">
+        <h1 class="title">Receipt Scanner</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification is-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="box">
+            <h2 class="subtitle">1. Provide OpenAI API Key</h2>
+            <form action="{{ url_for('set_api_key') }}" method="POST" class="field has-addons">
+                <div class="control is-expanded">
+                    <input class="input" type="password" name="api_key" placeholder="sk-..." value="{{ api_key or '' }}">
+                </div>
+                <div class="control">
+                    <button class="button is-link" type="submit">Save Key</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="box">
+            <h2 class="subtitle">2. Manage Accounts</h2>
+            <form action="{{ url_for('create_account') }}" method="POST" class="field has-addons">
+                <div class="control is-expanded">
+                    <input class="input" type="text" name="account_name" placeholder="New account name">
+                </div>
+                <div class="control">
+                    <button class="button is-primary" type="submit">Create/Select</button>
+                </div>
+            </form>
+            <div class="field">
+                <label class="label">Existing accounts</label>
+                <div class="select">
+                    <select onchange="window.location='/?account='+this.value">
+                        {% for name in accounts.keys() %}
+                        <option value="{{ name }}" {% if name == selected_account %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <h2 class="subtitle">3. Upload Receipt Photos</h2>
+            <form action="{{ url_for('upload_receipts') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="account" value="{{ selected_account }}">
+                <div class="field">
+                    <label class="label">Select receipt images</label>
+                    <div class="control">
+                        <input type="file" name="receipts" accept="image/*" multiple required>
+                    </div>
+                    <p class="help">Upload one or more receipt photos for the chosen account.</p>
+                </div>
+                <div class="field">
+                    <label class="label">Scan IDs</label>
+                    <div class="control">
+                        <textarea class="textarea" name="scan_ids" placeholder="One Scan ID per line. Provide a single line to apply to all files."></textarea>
+                    </div>
+                    <p class="help">Use the same order as the selected files.</p>
+                </div>
+                <button class="button is-success" type="submit">Process Receipts with ChatGPT</button>
+            </form>
+        </div>
+
+        <div class="box">
+            <h2 class="subtitle">Receipts for {{ selected_account or 'default' }}</h2>
+            <p><strong>Running total:</strong> {{ '%.2f' % total }}</p>
+            <div class="table-container">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Vendor</th>
+                            <th>Total</th>
+                            <th>Scan ID</th>
+                            <th>Filename</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for receipt in receipts %}
+                        <tr>
+                            <td>{{ receipt.date }}</td>
+                            <td>{{ receipt.vendor }}</td>
+                            <td>{{ receipt.total }}</td>
+                            <td>{{ receipt.scan_id }}</td>
+                            <td>{{ receipt.filename }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="has-text-centered">No receipts yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <a class="button is-info" href="{{ url_for('export_csv', account=selected_account) }}">Export CSV</a>
+        </div>
+    </div>
+</section>
+</body>
+</html>

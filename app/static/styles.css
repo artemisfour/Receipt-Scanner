@@ -1,0 +1,12 @@
+body {
+    background: #f7f9fb;
+}
+
+.box {
+    margin-bottom: 1.5rem;
+}
+
+.table-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
